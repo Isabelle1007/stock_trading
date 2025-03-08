@@ -72,7 +72,6 @@ class OrderBook:
         head = order_list[ticker]
         if head is None:
             # No orders yet, so new order becomes the head
-            new_order.next = head
             order_list[ticker] = new_order 
         elif (new_order.order_type == "Buy" and head.price <= new_order.price) or (new_order.order_type == "Sell" and head.price >= new_order.price):
             # New order is with highest priority, so it becomes the new head
@@ -98,7 +97,7 @@ class OrderBook:
         if new_order.order_type == "Buy":
             sell_orders = self.sell_orders[new_order.ticker]
             while sell_orders and sell_orders.price <= new_order.price:
-                matched_quantity = min(new_order.quantity, sell_orders.quantity)
+                matched_quantity = min(new_order.quantity.get(), sell_orders.quantity.get())
                 executed_trades.append((new_order.price, matched_quantity, new_order.ticker))  # Log execution
                 
                 # Adjust quantities using atomic operations
@@ -108,7 +107,7 @@ class OrderBook:
                     return executed_trades  # Fully matched, return trades
                 
                 # Check the next available Sell order
-                sell_orders = sell_orders.next
+                sell_orders = self.sell_orders[new_order.ticker]
         else:
             buy_orders = self.buy_orders[new_order.ticker]
             while buy_orders and buy_orders.price >= new_order.price:
@@ -122,7 +121,7 @@ class OrderBook:
                     return executed_trades
                 
                 # Check the next available Buy order
-                buy_orders = buy_orders.next
+                buy_orders = self.buy_orders[new_order.ticker]
                 
         # When no more matches was found, return so _insert_order() can perform the adding of the new order
         return executed_trades
